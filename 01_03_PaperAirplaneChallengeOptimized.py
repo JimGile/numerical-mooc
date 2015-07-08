@@ -6,6 +6,7 @@ Created on Tue Jun 30 21:40:48 2015
 """
 
 from math import sin, cos
+from scipy.optimize import minimize
 import numpy
 from matplotlib import pyplot
 #%matplotlib inline
@@ -63,7 +64,12 @@ def euler_step(u, f, dt):
     return u + dt * f(u)
 
 
-def dist(v0, theta0, x0, y0, dt):
+def dist(v0, theta0):
+    # set initial conditions
+    x0 = 0.0    # horizotal position is arbitrary
+    y0 = 10.0   # initial altitude
+    dt = 0.01   # time increment
+
     # initialize the array containing the solution for each time-step
     u = numpy.empty((2, 4))
     u[0] = numpy.array([v0, theta0, x0, y0])  # initial values
@@ -78,46 +84,35 @@ def dist(v0, theta0, x0, y0, dt):
 
     return u
 
-# set initial conditions
-x0 = 0.0    # horizotal position is arbitrary
-y0 = 10.0   # initial altitude
-dt = 0.01   # time increment
+
+def invDist(v0, theta0):
+    calcDist = dist(v0, theta0)
+    return 1./calcDist[1, 2]
+
 
 maxDist = numpy.empty((2, 4))
 for i in range(-5, 6, 1):
     v0 = v_t + i
     for j in range(-1, 2, 1):
         theta0 = (j*numpy.pi)/16
-        calcDist = dist(v0, theta0, x0, y0, dt)
+        calcDist = dist(v0, theta0)
         x = calcDist[1, 2]
         if x > maxDist[1, 2]:
             maxDist = calcDist[:]
 
 print maxDist
 
-T = 15.0                           # final time
-N = int(T/dt) + 1                  # number of time-steps
-t = numpy.linspace(0.0, T, N)      # time discretization
+# now use the scipy optimizer
+cons = ({'type': 'ineq', 'fun': lambda x:  x[0]},
+        {'type': 'ineq', 'fun': lambda x:  invDist(x[0], x[1])},
+        )
 
-# initialize the array containing the solution for each time-step
-u = numpy.empty((N, 4))
-u[0] = maxDist[0]  # fill 1st element with initial vals
+optResult = minimize(lambda x: invDist(x[0], x[1]), [v_t, 0.0],
+                     method='COBYLA',
+                     constraints=cons)
 
-print u[0]
+print optResult
+print optResult.x
 
-# time loop - Euler method
-for n in range(N-1):
-    u[n+1] = euler_step(u[n], f, dt)
-
-# get the glider's position with respect to the time
-x = u[:, 2]
-y = u[:, 3]
-
-# visualization of the path
-pyplot.figure(figsize=(8, 6))
-pyplot.grid(True)
-pyplot.xlabel(r'x', fontsize=18)
-pyplot.ylabel(r'y', fontsize=18)
-pyplot.suptitle('Distance = %.2f' % maxDist[1, 2], fontsize=18)
-pyplot.title('Glider trajectory, flight time = %.2f' % T, fontsize=14)
-pyplot.plot(x, y, 'k-', lw=2)
+maxDist2 = dist(optResult.x[0], optResult.x[1])
+print maxDist2
