@@ -113,6 +113,8 @@ u[0] = numpy.array([v0, theta0, x0, y0])  # fill 1st element with initial vals
 for n in range(N-1):
     u[n+1] = euler_step(u[n], f, dt)
 
+# print u
+
 # get the glider's position with respect to the time
 x = u[:, 2]
 y = u[:, 3]

@@ -90,13 +90,15 @@ def get_error(z, z_exact, dt):
 
     return dt * numpy.sum(numpy.abs(z-z_exact))
 
-T = 100.0
-dt = 0.01
+T = 10.0
+dt = 1.0
 N = int(T/dt)+1
 t = numpy.linspace(0.0, T, N)
 
 # time-loop using Euler's method
 z = numerical_solution(t)
+print z
+
 # calculate exact solution for same time frame
 z_exact = exact_solution(t)
 # print z_exact
